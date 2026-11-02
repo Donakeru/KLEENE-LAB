@@ -1,5 +1,6 @@
-"""Fachada de compatibilidad para la conversión de ER a autómata."""
+"""Fachada de compatibilidad para la conversión entre ER y autómatas."""
 
+from .af_to_re import automaton_to_regex
 from .re_to_af import ErrorSintaxis, regex_to_automaton
 
 
@@ -9,8 +10,8 @@ def regex_a_automata(texto):
 
 
 def automata_a_regex(automata):
-    """Punto de extensión para la conversión de autómata a ER."""
-    raise NotImplementedError("automata_a_regex: pendiente de implementar")
+    """Convierte un ``Automata`` en su ER equivalente (lema de Arden)."""
+    return automaton_to_regex(automata)
 
 
 __all__ = [
