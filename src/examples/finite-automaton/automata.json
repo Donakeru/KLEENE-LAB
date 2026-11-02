@@ -1,0 +1,57 @@
+{
+  "type": "Automata",
+  "alfabeto": [
+    "a",
+    "b"
+  ],
+  "estado_inicial": "q00",
+  "estados_finales": [
+    "q00"
+  ],
+  "estados": [
+    {
+      "id": "q00",
+      "x": -90,
+      "y": -12
+    },
+    {
+      "id": "q10",
+      "x": 100,
+      "y": 219
+    },
+    {
+      "id": "q01",
+      "x": -88,
+      "y": 252
+    },
+    {
+      "id": "q11",
+      "x": 231,
+      "y": -5
+    }
+  ],
+  "transiciones": [
+    {
+      "origen": "q00",
+      "simbolo": "a",
+      "destinos": [
+        "q10"
+      ]
+    },
+    {
+      "origen": "q00",
+      "simbolo": "b",
+      "destinos": [
+        "q01",
+        "q11"
+      ]
+    },
+    {
+      "origen": "q11",
+      "simbolo": "a",
+      "destinos": [
+        "q00"
+      ]
+    }
+  ]
+}

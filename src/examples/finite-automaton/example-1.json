@@ -1,0 +1,16 @@
+{
+  "type": "Automata",
+  "alfabeto": ["a", "b"],
+  "estado_inicial": "q00",
+  "estados_finales": ["q00"],
+  "estados": [
+    { "id": "q00", "x": 100, "y": 150 },
+    { "id": "q10", "x": 300, "y": 150 },
+    { "id": "q01", "x": 100, "y": 300 },
+    { "id": "q11", "x": 300, "y": 300 }
+  ],
+  "transiciones": [
+    { "origen": "q00", "simbolo": "a", "destinos": ["q10"] },
+    { "origen": "q00", "simbolo": "b", "destinos": ["q01"] }
+  ]
+}   

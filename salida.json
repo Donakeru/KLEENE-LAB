@@ -1,0 +1,238 @@
+{
+  "type": "Automata",
+  "alfabeto": [
+    "a",
+    "b"
+  ],
+  "estado_inicial": "q17",
+  "estados_finales": [
+    "q4",
+    "q8",
+    "q10",
+    "q14",
+    "q15"
+  ],
+  "estados": [
+    {
+      "id": "q0",
+      "x": 300,
+      "y": 150
+    },
+    {
+      "id": "q1",
+      "x": 900,
+      "y": 150
+    },
+    {
+      "id": "q2",
+      "x": 1100,
+      "y": 150
+    },
+    {
+      "id": "q3",
+      "x": 1300,
+      "y": 150
+    },
+    {
+      "id": "q4",
+      "x": 1500,
+      "y": 150
+    },
+    {
+      "id": "q5",
+      "x": 900,
+      "y": 300
+    },
+    {
+      "id": "q6",
+      "x": 1100,
+      "y": 300
+    },
+    {
+      "id": "q7",
+      "x": 1300,
+      "y": 300
+    },
+    {
+      "id": "q8",
+      "x": 1500,
+      "y": 300
+    },
+    {
+      "id": "q9",
+      "x": 700,
+      "y": 150
+    },
+    {
+      "id": "q10",
+      "x": 500,
+      "y": 150
+    },
+    {
+      "id": "q11",
+      "x": 300,
+      "y": 300
+    },
+    {
+      "id": "q12",
+      "x": 500,
+      "y": 300
+    },
+    {
+      "id": "q13",
+      "x": 900,
+      "y": 450
+    },
+    {
+      "id": "q14",
+      "x": 1100,
+      "y": 450
+    },
+    {
+      "id": "q15",
+      "x": 900,
+      "y": 600
+    },
+    {
+      "id": "q16",
+      "x": 700,
+      "y": 300
+    },
+    {
+      "id": "q17",
+      "x": 100,
+      "y": 150
+    }
+  ],
+  "transiciones": [
+    {
+      "origen": "q0",
+      "simbolo": "a",
+      "destinos": [
+        "q0"
+      ]
+    },
+    {
+      "origen": "q0",
+      "simbolo": "λ",
+      "destinos": [
+        "q10"
+      ]
+    },
+    {
+      "origen": "q1",
+      "simbolo": "a",
+      "destinos": [
+        "q2"
+      ]
+    },
+    {
+      "origen": "q2",
+      "simbolo": "λ",
+      "destinos": [
+        "q3"
+      ]
+    },
+    {
+      "origen": "q3",
+      "simbolo": "b",
+      "destinos": [
+        "q4"
+      ]
+    },
+    {
+      "origen": "q4",
+      "simbolo": "λ",
+      "destinos": [
+        "q10"
+      ]
+    },
+    {
+      "origen": "q5",
+      "simbolo": "b",
+      "destinos": [
+        "q6"
+      ]
+    },
+    {
+      "origen": "q6",
+      "simbolo": "λ",
+      "destinos": [
+        "q7"
+      ]
+    },
+    {
+      "origen": "q7",
+      "simbolo": "a",
+      "destinos": [
+        "q8"
+      ]
+    },
+    {
+      "origen": "q8",
+      "simbolo": "λ",
+      "destinos": [
+        "q10"
+      ]
+    },
+    {
+      "origen": "q9",
+      "simbolo": "λ",
+      "destinos": [
+        "q1",
+        "q5"
+      ]
+    },
+    {
+      "origen": "q10",
+      "simbolo": "λ",
+      "destinos": [
+        "q9"
+      ]
+    },
+    {
+      "origen": "q11",
+      "simbolo": "a",
+      "destinos": [
+        "q12"
+      ]
+    },
+    {
+      "origen": "q12",
+      "simbolo": "λ",
+      "destinos": [
+        "q16"
+      ]
+    },
+    {
+      "origen": "q13",
+      "simbolo": "b",
+      "destinos": [
+        "q14"
+      ]
+    },
+    {
+      "origen": "q15",
+      "simbolo": "a",
+      "destinos": [
+        "q15"
+      ]
+    },
+    {
+      "origen": "q16",
+      "simbolo": "λ",
+      "destinos": [
+        "q13",
+        "q15"
+      ]
+    },
+    {
+      "origen": "q17",
+      "simbolo": "λ",
+      "destinos": [
+        "q0",
+        "q11"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+# Caché y archivos compilados de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Entornos virtuales
+venv/
+env/
+ENV/
+
+# (Opcional) Salidas temporales JSON de pruebas en la raíz
+ejercicio*.json
