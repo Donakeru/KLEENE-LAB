@@ -4,7 +4,8 @@ import json
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from src.algorithms.regex_tools import automata_a_regex, regex_a_automata
+from src.algorithms.regex_tools import automata_a_regex
+from src.algorithms.re_to_af import regex_to_automaton
 from src.model import Automata
 
 
@@ -117,7 +118,7 @@ class AutomataController(QObject):
 
     # --- expresiones regulares --------------------------------------------
     def regex_to_automaton(self, expression):
-        return regex_a_automata(expression)
+        return regex_to_automaton(expression)
 
     def automaton_to_regex(self):
         return automata_a_regex(self.model)

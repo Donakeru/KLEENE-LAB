@@ -296,9 +296,9 @@ class RegexDock(QDockWidget):
         generate_button.clicked.connect(self._generate)
         layout.addWidget(generate_button)
         help_label = QLabel(
-            "Unión: + o |    Cierre: *    Opcional: ?\n"
+            "Unión: | o ∪    Concatenación: implícita\n"
             "Vacía: λ    Conjunto vacío: ∅\n"
-            "Escape: \\+  \\*  \\(  ...")
+            "Ejemplo: a*(ab|ba)*")
         help_label.setStyleSheet("color: gray;")
         layout.addWidget(help_label)
 

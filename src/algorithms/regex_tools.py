@@ -1,28 +1,21 @@
-"""Puntos de extensión para conversiones entre ER y autómatas.
+"""Fachada de compatibilidad para la conversión de ER a autómata."""
 
-La implementación de los algoritmos pertenece a esta capa de dominio y queda
-intencionalmente pendiente para que pueda incorporarse según la teoría del
-curso. La notación canónica para la cadena vacía es ``λ``.
-"""
-
-
-class ErrorSintaxis(ValueError):
-    """Error producido por una expresión regular inválida."""
+from .re_to_af import ErrorSintaxis, regex_to_automaton
 
 
 def regex_a_automata(texto):
-    """Convierte una expresión regular en un autómata.
-
-    Este método es el punto de extensión para la implementación de la
-    construcción de ER a AF.
-    """
-    raise NotImplementedError("regex_a_automata: pendiente de implementar")
+    """Alias histórico de ``regex_to_automaton``."""
+    return regex_to_automaton(texto)
 
 
 def automata_a_regex(automata):
-    """Convierte un autómata en una expresión regular.
-
-    Este método es el punto de extensión para la implementación del algoritmo
-    de autómata a ER, por ejemplo mediante el lema de Arden.
-    """
+    """Punto de extensión para la conversión de autómata a ER."""
     raise NotImplementedError("automata_a_regex: pendiente de implementar")
+
+
+__all__ = [
+    "ErrorSintaxis",
+    "automata_a_regex",
+    "regex_a_automata",
+    "regex_to_automaton",
+]

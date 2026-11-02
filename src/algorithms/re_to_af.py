@@ -2,35 +2,37 @@
 """
 Teorema de Kleene, parte I: expresión regular -> AFN-λ.
 
-Construcción recursiva (por inducción sobre la estructura de R):
-  - Casos base: ∅, λ, a
-  - Unión (R1 ∪ R2 ∪ ... ∪ Rn): un solo estado inicial nuevo con una λ hacia el inicial de cada Mi;
-                   finales = unión de los finales de todos los Mi
-  - Concatenación (RS): λ desde cada final de M1 al inicial de M2;
-                        finales = finales(M2)
-  - Clausura de un símbolo (a*): un solo estado inicial y final con bucle a (simplificación de 2.9)
-  - Clausura (R*) general: estado inicial nuevo (también final) con λ hacia el inicial
-                   de M1; λ desde cada final de M1 de regreso al inicial nuevo;
-                   finales = finales(M1) ∪ {inicial nuevo}
+La función pública ``regex_to_automaton`` devuelve directamente un objeto
+``Automata`` del modelo. La serialización JSON pertenece exclusivamente a la
+capa de persistencia del controlador.
 
-Sintaxis de la expresión regular de entrada:
-  unión          : |  o  ∪
+Construcción recursiva:
+  - Casos base: ∅, λ, a
+  - Unión: un estado inicial nuevo con una λ hacia cada rama
+  - Concatenación: λ desde cada final izquierdo al inicio derecho
+  - Clausura: estado inicial nuevo, también final, y retornos mediante λ.
+    Casos especiales (como en el texto):
+      * a*        -> un solo estado inicial y final con un bucle a
+      * (R1∪R2)*  -> el inicial de la unión sirve también de nodo de la
+                     clausura (sin estado λ intermedio)
+
+Sintaxis:
+  unión          : | o ∪
   concatenación  : implícita (ab = a·b)
   clausura       : *
   agrupación     : ( )
-  vacío / lambda : ∅  /  λ  (también se acepta ε)
-  símbolos       : cualquier otro carácter (a, b, c, 0, 1, ...)
-
-Uso:
-  python regex_a_afnlambda.py "a*(ab|ba)*|a(b|a*)"
-  python regex_a_afnlambda.py "a*(ab∪ba)*" -o salida.json
+  vacío / lambda : ∅ / λ (también se acepta ε)
+  símbolos       : cualquier otro carácter
 """
 
-import argparse
-import json
-import sys
+from src.model import Automata
 
-LAMBDA = "λ"  # símbolo usado en el JSON para las transiciones λ
+
+class ErrorSintaxis(ValueError):
+    """Error producido por una expresión regular inválida."""
+
+
+LAMBDA = "λ"  # símbolo canónico de las transiciones lambda
 
 UNION = {"|", "∪"}
 LAMBDA_CHARS = {"λ", "ε"}
@@ -50,6 +52,7 @@ class AFNLambda:
         self.inicial = None
         self.finales = []           # lista de estados finales
         self.simbolo_basico = None  # 'a' si es el autómata básico q0 -a-> q1
+        self.es_union = False       # True si su inicial es el nodo nuevo de una unión
 
     def nuevo_estado(self):
         q = self.n
@@ -125,6 +128,7 @@ class Constructor:
             finales += r.finales
         m.inicial = q0
         m.finales = finales
+        m.es_union = True
         return m
 
     def concatenacion(self, m1, m2):
@@ -144,6 +148,19 @@ class Constructor:
             q = m1.inicial
             m.agregar(q, m1.simbolo_basico, q)
             m.inicial, m.finales = q, [q]
+            return m
+
+        # Clausura de una unión, (R1 ∪ ... ∪ Rn)*: el inicial de la unión no tiene
+        # transiciones entrantes, así que sirve también como nodo de la clausura
+        # (final, con λ de regreso desde los finales). Evita un estado λ intermedio.
+        if m1.es_union:
+            m = self._nuevo()
+            _fusionar(m, m1, None)
+            q0 = m1.inicial
+            for f in m1.finales:
+                m.agregar(f, LAMBDA, q0)
+            m.inicial = q0
+            m.finales = m1.finales + [q0]
             return m
 
         # Construcción general
@@ -182,10 +199,10 @@ class Parser:
 
     def parse(self):
         if not self.t:
-            raise ValueError("La expresión regular está vacía (usa λ o ∅).")
+            raise ErrorSintaxis("La expresión regular está vacía (usa λ o ∅).")
         m = self._expr()
         if self._peek() is not None:
-            raise ValueError(f"Carácter inesperado '{self._peek()}' en la posición {self.i}.")
+            raise ErrorSintaxis(f"Carácter inesperado '{self._peek()}' en la posición {self.i}.")
         return m
 
     def _expr(self):
@@ -197,7 +214,7 @@ class Parser:
 
     def _term(self):
         if self._peek() is None or self._peek() in UNION or self._peek() == ")":
-            raise ValueError(f"Se esperaba una subexpresión en la posición {self.i}.")
+            raise ErrorSintaxis(f"Se esperaba una subexpresión en la posición {self.i}.")
         m = self._factor()
         while self._peek() is not None and self._peek() not in UNION and self._peek() != ")":
             m = self.c.concatenacion(m, self._factor())
@@ -215,21 +232,21 @@ class Parser:
         if ch == "(":
             m = self._expr()
             if self._next() != ")":
-                raise ValueError("Falta cerrar un paréntesis.")
+                raise ErrorSintaxis("Falta cerrar un paréntesis.")
             return m
         if ch in LAMBDA_CHARS:
             return self.c.lambda_()
         if ch == VACIO:
             return self.c.vacio()
         if ch is None or ch in RESERVADOS:
-            raise ValueError(f"Símbolo inesperado '{ch}' en la posición {self.i - 1}.")
+            raise ErrorSintaxis(f"Símbolo inesperado '{ch}' en la posición {self.i - 1}.")
         if ch not in self.alfabeto:
             self.alfabeto.append(ch)
         return self.c.simbolo(ch)
 
 
 # ---------------------------------------------------------------------------
-# Exportación al formato JSON pedido
+# Distribución gráfica de estados
 # ---------------------------------------------------------------------------
 def _layout(m, dx=200, dy=150, x0=100, y0=100):
     """Distribución por capas (estilo Graphviz) en Python puro, sin dependencias:
@@ -390,81 +407,33 @@ def compactar(m):
     return r
 
 
-def a_json(m, alfabeto):
-    pos = _layout(m)
-    nombre = lambda q: f"q{q}"
-
-    estados = [{"id": nombre(q), "x": pos[q][0], "y": pos[q][1]} for q in range(m.n)]
-    transiciones = [
-        {"origen": nombre(o), "simbolo": s, "destinos": [nombre(d) for d in ds]}
-        for (o, s), ds in sorted(m.trans.items(), key=lambda kv: (kv[0][0], kv[0][1]))
-    ]
-    return {
-        "type": "Automata",
-        "alfabeto": alfabeto,
-        "estado_inicial": nombre(m.inicial),
-        "estados_finales": [nombre(f) for f in sorted(set(m.finales))],
-        "estados": estados,
-        "transiciones": transiciones,
-    }
-
-
-def regex_a_afn_lambda(expresion):
-    """Devuelve el AFN-λ equivalente a la expresión regular, como dict listo para json.dumps."""
-    c = Constructor()
-    p = Parser(expresion, c)
-    m = p.parse()
-    m = compactar(m)
-    return a_json(m, p.alfabeto)
+def to_automata(m, alfabeto):
+    """Convierte la representación interna directamente en ``Automata``."""
+    position = _layout(m)
+    name = lambda state: f"q{state}"
+    automaton = Automata()
+    automaton.alfabeto = list(alfabeto)
+    for state in range(m.n):
+        x, y = position[state]
+        automaton.estados[name(state)] = [float(x), float(y)]
+    automaton.estado_inicial = name(m.inicial)
+    automaton.estados_finales = [name(final)
+                                 for final in sorted(set(m.finales))]
+    for (origin, symbol), destinations in m.trans.items():
+        for destination in destinations:
+            automaton.add_transition(
+                name(origin), symbol, name(destination))
+    return automaton
 
 
-# ---------------------------------------------------------------------------
-# Simulación (opcional, sirve para comprobar que L(M) = R)
-# ---------------------------------------------------------------------------
+def regex_to_automaton(expresion):
+    """Construye y devuelve directamente un ``Automata`` del modelo."""
+    constructor = Constructor()
+    parser = Parser(expresion, constructor)
+    automaton = compactar(parser.parse())
+    return to_automata(automaton, parser.alfabeto)
+
+
 def acepta(automata, cadena):
-    trans = {}
-    for t in automata["transiciones"]:
-        trans[(t["origen"], t["simbolo"])] = t["destinos"]
-
-    def clausura_lambda(conjunto):
-        pila, res = list(conjunto), set(conjunto)
-        while pila:
-            u = pila.pop()
-            for v in trans.get((u, LAMBDA), []):
-                if v not in res:
-                    res.add(v)
-                    pila.append(v)
-        return res
-
-    actuales = clausura_lambda({automata["estado_inicial"]})
-    for ch in cadena:
-        sig = set()
-        for u in actuales:
-            sig.update(trans.get((u, ch), []))
-        actuales = clausura_lambda(sig)
-    return bool(actuales & set(automata["estados_finales"]))
-
-
-# ---------------------------------------------------------------------------
-def main():
-    ap = argparse.ArgumentParser(description="Expresión regular -> AFN-λ (Teorema de Kleene, parte I)")
-    ap.add_argument("expresion", help='ej: "a*(ab|ba)*|a(b|a*)"')
-    ap.add_argument("-o", "--salida", help="archivo .json de salida (por defecto, stdout)")
-    args = ap.parse_args()
-
-    try:
-        resultado = regex_a_afn_lambda(args.expresion)
-    except ValueError as e:
-        sys.exit(f"Error: {e}")
-
-    texto = json.dumps(resultado, ensure_ascii=False, indent=2)
-    if args.salida:
-        with open(args.salida, "w", encoding="utf-8") as f:
-            f.write(texto + "\n")
-        print(f"Guardado en {args.salida}")
-    else:
-        print(texto)
-
-
-if __name__ == "__main__":
-    main()
+    """Compatibilidad para simular un objeto ``Automata`` del modelo."""
+    return automata.acepta(cadena)
