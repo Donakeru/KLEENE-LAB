@@ -1,0 +1,84 @@
+{
+  "type": "Automata",
+  "alfabeto": [
+    "a",
+    "b"
+  ],
+  "estado_inicial": "q0",
+  "estados_finales": [
+    "q2",
+    "q3"
+  ],
+  "estados": [
+    {
+      "id": "q1",
+      "x": 91,
+      "y": 217
+    },
+    {
+      "id": "q2",
+      "x": 254,
+      "y": 221
+    },
+    {
+      "id": "q0",
+      "x": -70,
+      "y": 219
+    },
+    {
+      "id": "q3",
+      "x": 417,
+      "y": 222
+    },
+    {
+      "id": "q4",
+      "x": 222,
+      "y": 380
+    }
+  ],
+  "transiciones": [
+    {
+      "origen": "q0",
+      "simbolo": "b",
+      "destinos": [
+        "q1"
+      ]
+    },
+    {
+      "origen": "q1",
+      "simbolo": "b",
+      "destinos": [
+        "q1"
+      ]
+    },
+    {
+      "origen": "q1",
+      "simbolo": "a",
+      "destinos": [
+        "q2"
+      ]
+    },
+    {
+      "origen": "q2",
+      "simbolo": "b",
+      "destinos": [
+        "q3"
+      ]
+    },
+    {
+      "origen": "q3",
+      "simbolo": "a",
+      "destinos": [
+        "q4"
+      ]
+    },
+    {
+      "origen": "q4",
+      "simbolo": "b",
+      "destinos": [
+        "q3",
+        "q1"
+      ]
+    }
+  ]
+}

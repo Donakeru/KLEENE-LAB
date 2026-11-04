@@ -7,7 +7,7 @@ from PyQt6.QtGui import (QBrush, QColor, QFont, QIcon, QPainter, QPen,
                          QPixmap, QPolygonF)
 from PyQt6.QtWidgets import QToolButton
 
-from .constants import DARK, Mode, SELECTED
+from .constants import DARK, FONT, Mode, SELECTED
 
 
 def make_icon(kind):
@@ -84,9 +84,9 @@ class ToolButton(QToolButton):
         if not self.tecla:
             return
         painter = QPainter(self)
-        painter.setFont(QFont("Sans", 8, QFont.Weight.Bold))
-        painter.setPen(QColor("#666666"))
-        painter.drawText(QRect(5, 2, 16, 14),
+        painter.setFont(QFont(FONT, 7, QFont.Weight.Bold))
+        painter.setPen(QColor("#b0a89c"))
+        painter.drawText(QRect(6, 3, 16, 14),
                          Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
                          self.tecla)
         painter.end()

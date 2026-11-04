@@ -38,7 +38,7 @@ from src.model import LAMBDA, Automata
 
 # Símbolos textuales de la ER resultante.
 VACIO = "∅"          # lenguaje vacío
-UNION = "+"          # unión (estilo pizarra: a+b). También se acepta "∪"/"|"
+UNION = "∪"          # unión, como en el desarrollo a mano (a∪b)
 
 
 # ---------------------------------------------------------------------------
@@ -248,11 +248,48 @@ def union(*expresiones):
     for parte in partes:
         if parte not in unicas:
             unicas.append(parte)
+    unicas = _absorber_union(unicas)
+    unicas.sort(key=lambda parte: parte.es_lambda())
     if not unicas:
         return vacio()
     if len(unicas) == 1:
         return unicas[0]
     return Union(unicas)
+
+
+def distribuir(alfa, beta):
+    """``α·β`` aplicando la distributiva si β es una unión:
+    α(β₁ ∪ β₂) = αβ₁ ∪ αβ₂ (como se hace al sustituir a mano)."""
+    if isinstance(beta, Union):
+        return union(*(concat(alfa, parte) for parte in beta.partes))
+    return concat(alfa, beta)
+
+
+def _absorber_union(partes):
+    """Simplificaciones de la unión que se hacen a mano:
+      - α + α*  = α*      (α* ya contiene α)
+      - α+ + α* = α*
+      - λ + α*  = α*      (α* ya contiene λ)
+      - λ + α+  = α*      (λ ∪ αα* = α*)
+    """
+    estrellas = {p.interno for p in partes if isinstance(p, Estrella)}
+    resultado = [p for p in partes
+                 if not (p in estrellas
+                         or (isinstance(p, Mas) and p.interno in estrellas))]
+    if any(p.es_lambda() for p in resultado):
+        mases = [p for p in resultado if isinstance(p, Mas)]
+        if any(isinstance(p, Estrella) for p in resultado) or mases:
+            resultado = [Estrella(p.interno) if isinstance(p, Mas) else p
+                         for p in resultado if not p.es_lambda()]
+    return resultado
+
+
+def _sin_lambda(expresion):
+    """Devuelve ``α`` si la expresión es ``λ + α`` (o ``α + λ``); si no, None."""
+    if isinstance(expresion, Union) and any(p.es_lambda() for p in expresion.partes):
+        resto = [p for p in expresion.partes if not p.es_lambda()]
+        return resto[0] if len(resto) == 1 else Union(resto)
+    return None
 
 
 def concat(*expresiones):
@@ -293,6 +330,21 @@ def _fusionar_estrella_base(partes):
     for parte in partes:
         if resultado:
             previo = resultado[-1]
+            # α* · α*  ->  α*
+            if isinstance(previo, Estrella) and parte == previo:
+                continue
+            # α* · (λ+α)  ->  α*      y      (λ+α) · α*  ->  α*
+            if isinstance(previo, Estrella) and _sin_lambda(parte) == previo.interno:
+                continue
+            if isinstance(parte, Estrella) and _sin_lambda(previo) == parte.interno:
+                resultado[-1] = parte
+                continue
+            # α+ · α*  ->  α+        y      α* · α+  ->  α+
+            if isinstance(previo, Mas) and isinstance(parte, Estrella)                     and previo.interno == parte.interno:
+                continue
+            if isinstance(previo, Estrella) and isinstance(parte, Mas)                     and previo.interno == parte.interno:
+                resultado[-1] = parte
+                continue
             # α* · α  ->  α+
             if isinstance(previo, Estrella) and previo.interno == parte:
                 resultado[-1] = Mas(parte)
@@ -314,8 +366,18 @@ def estrella(expresion):
     """
     if expresion.es_vacio() or expresion.es_lambda():
         return lamb()
-    if isinstance(expresion, Estrella):
-        return expresion
+    if isinstance(expresion, (Estrella, Mas)):
+        return Estrella(expresion.interno)
+    if isinstance(expresion, Union):
+        # (λ + α)* = α*    y    (α* + β)* = (α + β)*
+        partes = [p.interno if isinstance(p, (Estrella, Mas)) else p
+                  for p in expresion.partes if not p.es_lambda()]
+        interno = union(*partes)
+        if interno.es_vacio() or interno.es_lambda():
+            return lamb()
+        if isinstance(interno, (Estrella, Mas)):
+            return Estrella(interno.interno)
+        return Estrella(interno)
     return Estrella(expresion)
 
 
@@ -368,8 +430,10 @@ class ArdenSolver:
         if self.inicial is None:
             return vacio()
 
-        # Orden de eliminación: todos menos el inicial (que resolvemos al final).
-        pendientes = [e for e in self.estados if e != self.inicial]
+        # Orden de eliminación, como a mano: se empieza por el estado más
+        # lejano al inicial y se va sustituyendo hacia atrás (A4 en A3, A3 en
+        # A2, ...). El inicial se resuelve al final.
+        pendientes = self._orden_eliminacion()
 
         for x in pendientes:
             self._eliminar(x)
@@ -377,6 +441,23 @@ class ArdenSolver:
         # Queda una sola ecuación: A_inicial = coef[ini][ini]·A_inicial ∪ indep[ini]
         self._arden_propio(self.inicial)
         return self.indep[self.inicial]
+
+    def _orden_eliminacion(self):
+        """Estados (sin el inicial) ordenados del más lejano al más cercano
+        al inicial según la distancia en transiciones (BFS). Los empates y
+        los estados inalcanzables se resuelven por orden de definición, del
+        último al primero."""
+        distancia = {self.inicial: 0}
+        cola = [self.inicial]
+        for actual in cola:
+            for destino in self.estados:
+                if destino not in distancia and not self.coef[actual][destino].es_vacio():
+                    distancia[destino] = distancia[actual] + 1
+                    cola.append(destino)
+        lejano = len(self.estados) + 1
+        posicion = {estado: indice for indice, estado in enumerate(self.estados)}
+        resto = [e for e in self.estados if e != self.inicial]
+        return sorted(resto, key=lambda e: (-distancia.get(e, lejano), -posicion[e]))
 
     def _arden_propio(self, x):
         """Aplica el lema de Arden a la ecuación del estado ``x``:
@@ -407,11 +488,11 @@ class ArdenSolver:
             # Reemplazamos X por su expresión resuelta.
             self.coef[i][x] = vacio()
             self.indep[i] = union(self.indep[i],
-                                  concat(coef_ix, self.indep[x]))
+                                  distribuir(coef_ix, self.indep[x]))
             for j in self.estados:
                 if j == x:
                     continue
-                aporte = concat(coef_ix, self.coef[x][j])
+                aporte = distribuir(coef_ix, self.coef[x][j])
                 if not aporte.es_vacio():
                     self.coef[i][j] = union(self.coef[i][j], aporte)
 

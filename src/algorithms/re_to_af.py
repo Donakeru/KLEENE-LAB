@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 Teorema de Kleene, parte I: expresión regular -> AFN-λ.
 
 La función pública ``regex_to_automaton`` devuelve directamente un objeto
@@ -17,12 +17,13 @@ Construcción recursiva:
                      clausura (sin estado λ intermedio)
 
 Sintaxis:
-  unión          : | o ∪
+  unión          : ∪, |, U o +
   concatenación  : implícita (ab = a·b)
   clausura       : *
   agrupación     : ( )
   vacío / lambda : ∅ / λ (también se acepta ε)
   símbolos       : cualquier otro carácter
+  LaTeX          : se aceptan \cup, \lambda, \varepsilon, \emptyset y ^*
 """
 
 from src.model import Automata
@@ -34,7 +35,7 @@ class ErrorSintaxis(ValueError):
 
 LAMBDA = "λ"  # símbolo canónico de las transiciones lambda
 
-UNION = {"|", "∪"}
+UNION = {"|", "∪", "U", "+"}
 LAMBDA_CHARS = {"λ", "ε"}
 VACIO = "∅"
 RESERVADOS = UNION | LAMBDA_CHARS | {VACIO, "(", ")", "*"}
@@ -182,9 +183,25 @@ class Constructor:
 #   factor := atomo '*'*
 #   atomo  := '(' expr ')' | λ | ∅ | símbolo
 # ---------------------------------------------------------------------------
+# Notación LaTeX o de pizarra que se traduce antes de analizar.
+REEMPLAZOS = [
+    (r"\cup", "∪"), (r"\lambda", "λ"), (r"\varepsilon", "λ"),
+    (r"\epsilon", "λ"), (r"\emptyset", "∅"), (r"\varnothing", "∅"),
+    ("^{*}", "*"), ("^*", "*"), (r"\left", ""), (r"\right", ""),
+    (r"\(", ""), (r"\)", ""), (r"\[", ""), (r"\]", ""),
+]
+
+
+def normalizar(texto):
+    r"""Traduce LaTeX copiado (``c^*a(a\cup b)``) a la sintaxis del editor."""
+    for origen, destino in REEMPLAZOS:
+        texto = texto.replace(origen, destino)
+    return texto.strip().rstrip(".")
+
+
 class Parser:
     def __init__(self, texto, constructor):
-        self.t = [c for c in texto if not c.isspace()]
+        self.t = [c for c in normalizar(texto) if not c.isspace()]
         self.i = 0
         self.c = constructor
         self.alfabeto = []

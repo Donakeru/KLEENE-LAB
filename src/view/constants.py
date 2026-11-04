@@ -4,9 +4,34 @@ from PyQt6.QtGui import QColor
 
 
 R = 28
-DARK = QColor("#333333")
-SELECTED = QColor("#1a73e8")
-PENDING = QColor("#e8710a")
+FONT = "Segoe UI"
+
+# Paleta de la interfaz (cadenas para hojas de estilo): papel, tinta y verde.
+ACCENT = "#2f6b4f"          # verde bosque
+ACCENT_HOVER = "#255a41"
+ACCENT_SOFT = "#ecf3ee"
+ACCENT_LINE = "#bcd3c4"
+ACCENT_PRESSED = "#dbe9df"
+SURFACE = "#f5f2ec"         # papel
+PANEL = "#fdfbf7"
+BORDER = "#e2dbcf"
+TEXT = "#2b2722"            # tinta
+TEXT_MUTED = "#7a7166"
+TEXT_DISABLED = "#b0a89c"
+SCROLL = "#d3cbbd"
+SCROLL_HOVER = "#a99f90"
+
+# Colores del lienzo.
+DARK = QColor("#3a342d")
+SELECTED = QColor(ACCENT)
+PENDING = QColor("#c47a12")       # ámbar
+INITIAL = QColor("#b4532a")       # terracota
+STATE_FILL = QColor("#ffffff")
+SELECTED_FILL = QColor(ACCENT_SOFT)
+PENDING_FILL = QColor("#fbf1df")
+FINAL_FILL = QColor("#f7eee2")
+CANVAS_BG = QColor("#fbf9f5")
+CANVAS_DOT = QColor("#d9d1c4")
 
 
 class Mode:

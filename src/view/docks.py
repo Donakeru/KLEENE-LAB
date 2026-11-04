@@ -29,6 +29,7 @@ class EditDock(QDockWidget):
         self.alpha_edit.returnPressed.connect(self._apply_alphabet)
         alphabet_layout.addWidget(self.alpha_edit)
         apply_button = QPushButton("Aplicar")
+        apply_button.setProperty("primary", True)
         apply_button.clicked.connect(self._apply_alphabet)
         alphabet_layout.addWidget(apply_button)
         layout.addWidget(alphabet_group)
@@ -114,7 +115,7 @@ class PropertiesDock(QDockWidget):
 
         self.prop_hint = QLabel()
         self.prop_hint.setWordWrap(True)
-        self.prop_hint.setStyleSheet("color: gray;")
+        self.prop_hint.setStyleSheet("color: #7a7166;")
         layout.addWidget(self.prop_hint)
         layout.addStretch(1)
 
@@ -293,18 +294,20 @@ class RegexDock(QDockWidget):
         layout.addWidget(row)
 
         generate_button = QPushButton("Generar autómata")
+        generate_button.setProperty("primary", True)
         generate_button.clicked.connect(self._generate)
         layout.addWidget(generate_button)
         help_label = QLabel(
-            "Unión: | o ∪    Concatenación: implícita\n"
+            "Unión: ∪, U, | o +    Concatenación: implícita\n"
             "Vacía: λ    Conjunto vacío: ∅\n"
             "Ejemplo: a*(ab|ba)*")
-        help_label.setStyleSheet("color: gray;")
+        help_label.setStyleSheet("color: #7a7166; font-size: 9pt;")
         layout.addWidget(help_label)
 
         layout.addSpacing(12)
         layout.addWidget(QLabel("<b>Autómata → ER</b>"))
         get_regex_button = QPushButton("Obtener ER (lema de Arden)")
+        get_regex_button.setProperty("primary", True)
         get_regex_button.clicked.connect(self._get_regex_callback)
         layout.addWidget(get_regex_button)
         self.regex_out = QLineEdit()

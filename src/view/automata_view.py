@@ -12,7 +12,9 @@ class AutomataView(QGraphicsView):
 
     def __init__(self, scene):
         super().__init__(scene)
-        self.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.setRenderHints(QPainter.RenderHint.Antialiasing
+                            | QPainter.RenderHint.TextAntialiasing)
+        self.setFrameShape(QGraphicsView.Shape.NoFrame)
         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
         self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)

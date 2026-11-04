@@ -3,14 +3,14 @@
 import math
 from collections import defaultdict
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import QPointF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QPen
 from PyQt6.QtWidgets import (QGraphicsItem, QGraphicsLineItem, QGraphicsScene,
                              QInputDialog, QMenu, QMessageBox)
 
 from src.model import LAMBDA
 
-from .constants import DARK, HINTS, PENDING, Mode
+from .constants import CANVAS_BG, CANVAS_DOT, DARK, HINTS, PENDING, Mode
 from .graphics_items import EdgeItem, StateItem
 
 
@@ -30,6 +30,13 @@ class AutomataScene(QGraphicsScene):
         self.state_items = {}
         self.setSceneRect(-2000, -2000, 5000, 4000)
         self.refresh()
+
+    def grow_scene_rect(self):
+        """Amplía el área desplazable para que contenga todos los estados
+        (los autómatas generados pueden ser muy anchos)."""
+        bounds = self.itemsBoundingRect().adjusted(-1500, -1500, 1500, 1500)
+        if not self.sceneRect().contains(bounds):
+            self.setSceneRect(self.sceneRect().united(bounds))
 
     def dialog_parent(self):
         views = self.views()
@@ -106,6 +113,7 @@ class AutomataScene(QGraphicsScene):
         for item in self.state_items.values():
             item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable,
                          self.mode == Mode.SELECT)
+        self.grow_scene_rect()
         for sid in ids:
             if sid in self.state_items:
                 self.state_items[sid].setSelected(True)
@@ -230,7 +238,8 @@ class AutomataScene(QGraphicsScene):
             item.update_style()
             self.temp_line = QGraphicsLineItem(
                 item.pos().x(), item.pos().y(), pos.x(), pos.y())
-            self.temp_line.setPen(QPen(PENDING, 2, Qt.PenStyle.DashLine))
+            self.temp_line.setPen(QPen(PENDING, 2, Qt.PenStyle.DashLine,
+                                       Qt.PenCapStyle.RoundCap))
             self.addItem(self.temp_line)
             self.status.emit("Ahora haz clic en el estado destino.")
         else:
@@ -311,14 +320,22 @@ class AutomataScene(QGraphicsScene):
         event.accept()
 
     def drawBackground(self, painter, rect):
-        painter.fillRect(rect, QColor("#fafafa"))
-        step = 50
-        painter.setPen(QPen(QColor("#e8e8e8"), 1))
-        x = int(math.floor(rect.left() / step)) * step
-        while x < rect.right():
-            painter.drawLine(x, int(rect.top()), x, int(rect.bottom()))
-            x += step
-        y = int(math.floor(rect.top() / step)) * step
+        painter.fillRect(rect, CANVAS_BG)
+        step = 25
+        scale = painter.worldTransform().m11() or 1.0
+        while step * scale < 16:
+            step *= 2
+        painter.setPen(QPen(CANVAS_DOT, 2, Qt.PenStyle.SolidLine,
+                            Qt.PenCapStyle.RoundCap))
+        left = int(math.floor(rect.left() / step)) * step
+        top = int(math.floor(rect.top() / step)) * step
+        points = []
+        y = top
         while y < rect.bottom():
-            painter.drawLine(int(rect.left()), y, int(rect.right()), y)
+            x = left
+            while x < rect.right():
+                points.append(QPointF(x, y))
+                x += step
             y += step
+        if len(points) < 40000:
+            painter.drawPoints(points)
