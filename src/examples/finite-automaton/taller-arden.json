@@ -1,0 +1,84 @@
+{
+  "type": "Automata",
+  "alfabeto": [
+    "a",
+    "b"
+  ],
+  "estado_inicial": "A0",
+  "estados_finales": [
+    "A2",
+    "A3"
+  ],
+  "estados": [
+    {
+      "id": "A0",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "A1",
+      "x": 150,
+      "y": 0
+    },
+    {
+      "id": "A2",
+      "x": 300,
+      "y": 0
+    },
+    {
+      "id": "A3",
+      "x": 450,
+      "y": 0
+    },
+    {
+      "id": "A4",
+      "x": 600,
+      "y": 0
+    }
+  ],
+  "transiciones": [
+    {
+      "origen": "A0",
+      "simbolo": "b",
+      "destinos": [
+        "A1"
+      ]
+    },
+    {
+      "origen": "A1",
+      "simbolo": "b",
+      "destinos": [
+        "A1"
+      ]
+    },
+    {
+      "origen": "A1",
+      "simbolo": "a",
+      "destinos": [
+        "A2"
+      ]
+    },
+    {
+      "origen": "A2",
+      "simbolo": "b",
+      "destinos": [
+        "A3"
+      ]
+    },
+    {
+      "origen": "A3",
+      "simbolo": "a",
+      "destinos": [
+        "A4"
+      ]
+    },
+    {
+      "origen": "A4",
+      "simbolo": "b",
+      "destinos": [
+        "A3",
+        "A1"
+      ]
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import json
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from src.algorithms.regex_tools import automata_a_regex
+from src.algorithms.regex_tools import automata_a_regex, automata_a_regex_pasos
 from src.algorithms.re_to_af import regex_to_automaton
 from src.model import Automata
 
@@ -122,6 +122,10 @@ class AutomataController(QObject):
 
     def automaton_to_regex(self):
         return automata_a_regex(self.model)
+
+    def automaton_to_regex_steps(self):
+        """Devuelve ``(er, pasos)`` para mostrar el desarrollo de Arden."""
+        return automata_a_regex_pasos(self.model)
 
     def _changed(self):
         self.model_changed.emit(self.model)

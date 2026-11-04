@@ -426,21 +426,113 @@ class ArdenSolver:
                         self.coef[origen][destino], etiqueta)
 
     def resolver(self):
-        """Elimina incógnitas una a una y devuelve la ER del estado inicial."""
+        """Elimina incógnitas una a una y devuelve la ER del estado inicial.
+
+        Además deja en ``self.pasos`` el desarrollo paso a paso (como se hace
+        a mano) para poder mostrárselo al usuario.
+        """
+        self.pasos = []
         if self.inicial is None:
             return vacio()
+
+        self._numero = {}
+        self._siguiente = 1
+        self._rhs = {}
+        lineas = []
+        for estado in self.estados:
+            self._numero[estado] = self._nuevo_numero()
+            lineas.append(("", self._ecuacion(estado), False, self._numero[estado]))
+        self._paso("Sistema de ecuaciones inicial", lineas,
+                   "Cada estado se escribe como la unión de «símbolo·destino» por "
+                   "cada transición que sale de él, más λ si el estado es final.")
 
         # Orden de eliminación, como a mano: se empieza por el estado más
         # lejano al inicial y se va sustituyendo hacia atrás (A4 en A3, A3 en
         # A2, ...). El inicial se resuelve al final.
-        pendientes = self._orden_eliminacion()
-
-        for x in pendientes:
+        self._eliminados = set()
+        for x in self._orden_eliminacion():
             self._eliminar(x)
+            self._eliminados.add(x)
 
         # Queda una sola ecuación: A_inicial = coef[ini][ini]·A_inicial ∪ indep[ini]
-        self._arden_propio(self.inicial)
-        return self.indep[self.inicial]
+        x = self.inicial
+        lineas = []
+        if not self.coef[x][x].es_vacio():
+            lineas += self._lineas_arden(x)
+        resultado = self.indep[x]
+        lineas.append(("Expresión regular final", f"{x} = {resultado}", True, None))
+        self._paso(f"Resolver la ecuación del estado inicial {x}" if len(lineas) > 1
+                   else "Resultado final", lineas)
+        return resultado
+
+    # --- registro del paso a paso ------------------------------------------
+    def _nuevo_numero(self):
+        numero = self._siguiente
+        self._siguiente += 1
+        return numero
+
+    def _paso(self, titulo, lineas, nota=""):
+        self.pasos.append({"titulo": titulo, "nota": nota, "lineas": lineas})
+
+    @staticmethod
+    def _partes(expresion):
+        if expresion.es_vacio():
+            return []
+        if isinstance(expresion, Union):
+            return list(expresion.partes)
+        return [expresion]
+
+    @staticmethod
+    def _termino(coef, variable):
+        """Texto de ``coef·variable`` (λ·X se escribe X)."""
+        return variable if coef.es_lambda() else coef.render(RE.PREC_CONCAT) + variable
+
+    def _terminos(self, i, propio_primero=False):
+        """Términos del lado derecho de la ecuación de ``i``."""
+        orden = list(self.estados)
+        if propio_primero:
+            orden.remove(i)
+            orden.insert(0, i)
+        terminos = [self._termino(self.coef[i][j], j)
+                    for j in orden if not self.coef[i][j].es_vacio()]
+        terminos += [str(parte) for parte in self._partes(self.indep[i])]
+        return terminos
+
+    def _ecuacion(self, i, terminos=None):
+        terminos = self._terminos(i) if terminos is None else terminos
+        return f"{i} = " + (" ∪ ".join(terminos) if terminos else VACIO)
+
+    @staticmethod
+    def _agrupar(terminos):
+        """Une términos; con más de uno los pone entre paréntesis."""
+        if not terminos:
+            return VACIO
+        if len(terminos) == 1:
+            return terminos[0]
+        return "(" + " ∪ ".join(terminos) + ")"
+
+    def _lineas_arden(self, x):
+        """Agrupa la ecuación de ``x`` como X = αX ∪ β y aplica el lema."""
+        alfa = self.coef[x][x]
+        resto = self._terminos(x, propio_primero=True)[1:]
+        beta = self._agrupar(resto)
+        lineas = [(f"Agrupamos los términos que contienen {x}",
+                   f"{x} = {self._termino(alfa, x)} ∪ {beta}", False, None)]
+        estrella_txt = estrella(alfa).render(RE.PREC_CONCAT)
+        self._arden_propio(x)
+        if beta == LAMBDA:
+            forma = estrella_txt
+        elif beta == VACIO:
+            forma = VACIO
+        else:
+            forma = estrella_txt + beta
+        self._rhs[x] = [forma]
+        self._numero[x] = self._nuevo_numero()
+        alfa_txt = alfa.render(RE.PREC_CONCAT)
+        lineas.append((f"Aplicamos el lema de Arden (X = αX ∪ β  ⟹  X = α*β), "
+                       f"con α = {alfa_txt}",
+                       f"{x} = {forma}", True, self._numero[x]))
+        return lineas
 
     def _orden_eliminacion(self):
         """Estados (sin el inicial) ordenados del más lejano al más cercano
@@ -474,16 +566,45 @@ class ArdenSolver:
     def _eliminar(self, x):
         """Resuelve ``x`` con Arden y sustituye su valor en las demás
         ecuaciones (eliminación gaussiana sobre el semianillo de ER)."""
+        lineas = []
         # 1) Resolver el autobucle de x: x = α*·(resto).
-        self._arden_propio(x)
+        if not self.coef[x][x].es_vacio():
+            lineas += self._lineas_arden(x)
+        else:
+            self._rhs[x] = self._terminos(x)
+        valor_x = self._agrupar(self._rhs[x])
 
-        # 2) Sustituir x en toda ecuación que lo referencie.
+        # 2) Sustituir x en las ecuaciones pendientes que lo referencien (las ya
+        #    eliminadas no hacen falta para el resultado, como a mano).
         for i in self.estados:
-            if i == x:
+            if i == x or i in getattr(self, "_eliminados", ()):
                 continue
             coef_ix = self.coef[i][x]
             if coef_ix.es_vacio():
                 continue
+            antes = self._ecuacion(i)
+
+            # Texto con X reemplazada por su valor: a(bA3 ∪ bA1)
+            factor = "" if coef_ix.es_lambda() else coef_ix.render(RE.PREC_CONCAT)
+            sustituida = [factor + valor_x if j == x else self._termino(self.coef[i][j], j)
+                          for j in self.estados if not self.coef[i][j].es_vacio()]
+            sustituida += [str(parte) for parte in self._partes(self.indep[i])]
+
+            # Texto distribuido, antes de agrupar: abA3 ∪ abA1 ∪ λ
+            #   (los términos nuevos quedan donde estaba X)
+            distribuidos = []
+            for j in self.estados:
+                if j == x:
+                    for k in self.estados:
+                        if k != x:
+                            distribuidos += [self._termino(parte, k) for parte in
+                                             self._partes(distribuir(coef_ix, self.coef[x][k]))]
+                    distribuidos += [str(parte) for parte in
+                                     self._partes(distribuir(coef_ix, self.indep[x]))]
+                elif not self.coef[i][j].es_vacio():
+                    distribuidos.append(self._termino(self.coef[i][j], j))
+            distribuidos += [str(parte) for parte in self._partes(self.indep[i])]
+
             # La ecuación de i tenía ... ∪ coef_ix · X.
             # Reemplazamos X por su expresión resuelta.
             self.coef[i][x] = vacio()
@@ -496,6 +617,19 @@ class ArdenSolver:
                 if not aporte.es_vacio():
                     self.coef[i][j] = union(self.coef[i][j], aporte)
 
+            # Registro: partimos de / sustituimos / distribuimos / agrupamos
+            sub = [("Partimos de", antes),
+                   (f"Sustituimos {x}", self._ecuacion(i, sustituida))]
+            for texto, ecuacion in (("Distribuimos", self._ecuacion(i, distribuidos)),
+                                    ("Agrupamos y simplificamos", self._ecuacion(i))):
+                if ecuacion.replace(" ", "") != sub[-1][1].replace(" ", ""):
+                    sub.append((texto, ecuacion))
+            self._numero[i] = self._nuevo_numero()
+            lineas.append((f"Reemplazamos {x} en la ecuación de {i}", None, False, None))
+            lineas += [(texto, ecuacion, False, None) for texto, ecuacion in sub[:-1]]
+            lineas.append((sub[-1][0], sub[-1][1], True, self._numero[i]))
+        if lineas:
+            self._paso(f"Eliminar {x}", lineas)
 
 # ---------------------------------------------------------------------------
 # API pública
@@ -511,3 +645,16 @@ def automaton_to_regex(automata):
     solver = ArdenSolver(automata)
     resultado = solver.resolver()
     return str(resultado)
+
+
+def automaton_to_regex_pasos(automata):
+    """Como ``automaton_to_regex`` pero devuelve también el desarrollo.
+
+    Devuelve ``(er, pasos)``. Cada paso es un dict con ``titulo``, ``nota`` y
+    ``lineas``: tuplas ``(explicación, ecuación o None, recuadrada, número)``.
+    """
+    if not isinstance(automata, Automata):
+        automata = Automata.from_dict(automata)
+    solver = ArdenSolver(automata)
+    resultado = solver.resolver()
+    return str(resultado), solver.pasos

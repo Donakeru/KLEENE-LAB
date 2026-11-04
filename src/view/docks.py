@@ -271,10 +271,12 @@ class PropertiesDock(QDockWidget):
 class RegexDock(QDockWidget):
     """Panel de conversión entre expresiones regulares y autómatas."""
 
-    def __init__(self, parent, generate_callback, get_regex_callback):
+    def __init__(self, parent, generate_callback, get_regex_callback,
+                 steps_callback=None):
         super().__init__("Expresiones regulares", parent)
         self._generate_callback = generate_callback
         self._get_regex_callback = get_regex_callback
+        self._steps_callback = steps_callback
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
@@ -314,6 +316,13 @@ class RegexDock(QDockWidget):
         self.regex_out.setReadOnly(True)
         self.regex_out.setPlaceholderText("aquí aparecerá la ER")
         layout.addWidget(self.regex_out)
+        if steps_callback is not None:
+            steps_button = QPushButton("Ver paso a paso")
+            steps_button.setToolTip(
+                "Muestra el sistema de ecuaciones y cada sustitución "
+                "hasta llegar a la ER")
+            steps_button.clicked.connect(self._steps_callback)
+            layout.addWidget(steps_button)
         layout.addStretch(1)
 
         self.setWidget(widget)

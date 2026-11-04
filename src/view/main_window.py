@@ -8,6 +8,7 @@ from src.algorithms.regex_tools import ErrorSintaxis
 from src.controller.automata_controller import AutomataController
 from src.model import Automata
 
+from .arden_dialog import ArdenStepsDialog
 from .automata_view import AutomataView
 from .constants import EJEMPLO, Mode
 from .docks import EditDock, PropertiesDock, RegexDock
@@ -36,7 +37,8 @@ class MainWindow(QMainWindow):
 
         self.build_actions()
         self.edit_dock = EditDock(self, self.mode_actions, self.apply_alphabet)
-        self.regex_dock = RegexDock(self, self.generar_desde_er, self.obtener_er)
+        self.regex_dock = RegexDock(
+            self, self.generar_desde_er, self.obtener_er, self.ver_pasos_arden)
         self.properties_dock = PropertiesDock(
             self, self.scene, self.controller, self.statusBar().showMessage)
         self.scene.set_mode(Mode.SELECT)
@@ -138,6 +140,25 @@ class MainWindow(QMainWindow):
             return
         self.regex_dock.set_output(expression)
         self.statusBar().showMessage("ER obtenida del autómata.")
+
+    def ver_pasos_arden(self):
+        """Abre la ventana con el desarrollo paso a paso del lema de Arden."""
+        if self.scene.model.estado_inicial is None:
+            QMessageBox.warning(
+                self,
+                "Sin estado inicial",
+                "Marca un estado inicial antes de ver el desarrollo.")
+            return
+        try:
+            expression, steps = self.controller.automaton_to_regex_steps()
+        except Exception as error:
+            QMessageBox.critical(
+                self,
+                "Error en el lema de Arden",
+                f"{type(error).__name__}: {error}")
+            return
+        self.regex_dock.set_output(expression)
+        ArdenStepsDialog(self, steps, expression).exec()
 
     # --- alfabeto ---------------------------------------------------------
     def sync_alphabet(self):
